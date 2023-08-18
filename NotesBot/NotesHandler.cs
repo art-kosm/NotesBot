@@ -36,11 +36,13 @@ namespace NotesBot
 
         const string NotesFilePath = "notes.yml";
         readonly ChatId m_chatId = Convert.ToInt32(Environment.GetEnvironmentVariable("CHAT_ID"));
+        readonly string m_botUsername = $"@{Environment.GetEnvironmentVariable("BOT_USERNAME")}";
+
+        readonly TelegramBotClient m_botClient;
         readonly Dictionary<int, Note> m_notesMap = new(); // note id -> note
         readonly Dictionary<int, int> m_noteToMessageMap = new(); // note id -> message id
         int m_currentNoteId = 0;
         bool m_showCreatedTime = false;
-        readonly TelegramBotClient m_botClient;
         bool m_resended = false;
 
         public NotesHandler(TelegramBotClient botClient, CancellationTokenSource cts)
@@ -98,10 +100,9 @@ namespace NotesBot
             if (message.Text is not { } messageText)
                 return;
 
-            string botUsername = $"@{Environment.GetEnvironmentVariable("BOT_USERNAME")}";
-            string editHead = botUsername + " /edit ";
-            string deleteHead = botUsername + " /delete ";
-            string tagHead = botUsername + " /tag ";
+            string editHead = m_botUsername + " /edit ";
+            string deleteHead = m_botUsername + " /delete ";
+            string tagHead = m_botUsername + " /tag ";
             const string showCreatedTimeHead = "/show_created_time ";
             if (messageText.StartsWith(editHead))
             {
@@ -165,7 +166,7 @@ namespace NotesBot
                 messageId: message.MessageId,
                 cancellationToken: cancellationToken);
             LogToFile(message.Chat.Username, messageText);
-            WriteYaml(m_notesMap, "notes.yml");
+            WriteYaml(m_notesMap, NotesFilePath);
         }
 
         async Task UpdateNote(int noteId, NoteText noteText, CancellationToken cancellationToken)
