@@ -111,11 +111,14 @@ namespace NotesBot
                 if (index != -1)
                 {
                     int noteId = Convert.ToInt32(commandString[..index]);
-                    string editText = commandString[(index + 1)..];
-                    await UpdateNote(
-                        noteText: new NoteText(editText),
-                        noteId: noteId,
-                        cancellationToken: cancellationToken);
+                    if (m_notesMap.ContainsKey(noteId))
+                    {
+                        string editText = commandString[(index + 1)..];
+                        await UpdateNote(
+                            noteText: new NoteText(editText),
+                            noteId: noteId,
+                            cancellationToken: cancellationToken);
+                    }
                 }
             }
             else if (messageText.StartsWith(tagHead))
@@ -125,28 +128,34 @@ namespace NotesBot
                 if (index != -1)
                 {
                     int noteId = Convert.ToInt32(commandString[..index]);
-                    string category = commandString[(index + 1)..];
-                    await UpdateNote(
-                        noteText: new NoteText
-                        {
-                            text = m_notesMap[noteId].noteText.text,
-                            category = category
-                        },
-                        noteId: noteId,
-                        cancellationToken: cancellationToken);
+                    if (m_notesMap.ContainsKey(noteId))
+                    {
+                        string category = commandString[(index + 1)..];
+                        await UpdateNote(
+                            noteText: new NoteText
+                            {
+                                text = m_notesMap[noteId].noteText.text,
+                                category = category
+                            },
+                            noteId: noteId,
+                            cancellationToken: cancellationToken);
+                    }
                 }
             }
             else if (messageText.StartsWith(deleteHead))
             {
                 int noteId = Convert.ToInt32(messageText[deleteHead.Length..]);
-                LogDeletedNote(m_notesMap[noteId]);
-                m_notesMap.Remove(noteId);
+                if (m_notesMap.ContainsKey(noteId))
+                {
+                    LogDeletedNote(m_notesMap[noteId]);
+                    m_notesMap.Remove(noteId);
 
-                await DeleteMessage(
-                    messageId: m_noteToMessageMap[noteId],
-                    cancellationToken: cancellationToken);
+                    await DeleteMessage(
+                        messageId: m_noteToMessageMap[noteId],
+                        cancellationToken: cancellationToken);
 
-                m_noteToMessageMap.Remove(noteId);
+                    m_noteToMessageMap.Remove(noteId);
+                }
             }
             else if (messageText.StartsWith(showCreatedTimeHead))
             {
