@@ -34,6 +34,8 @@ namespace NotesBot
             }
         }
 
+        readonly ManualResetEventSlim m_waiter = new(false);
+
         const string NotesFilePath = "notes.yml";
         readonly ChatId m_chatId = Convert.ToInt32(Environment.GetEnvironmentVariable("CHAT_ID"));
         readonly string m_botUsername = $"@{Environment.GetEnvironmentVariable("BOT_USERNAME")}";
@@ -52,6 +54,11 @@ namespace NotesBot
             System.Timers.Timer timer = new(30 * 1000);
             timer.Elapsed += async (sender, e) => await ResendMessages(cts);
             timer.Start();
+        }
+
+        public void Wait()
+        {
+            m_waiter.Wait();
         }
 
         async Task ResendMessages(CancellationTokenSource cts)
@@ -104,6 +111,8 @@ namespace NotesBot
             string deleteHead = m_botUsername + " /delete ";
             string tagHead = m_botUsername + " /tag ";
             const string showCreatedTimeHead = "/show_created_time ";
+            const string stopHead = "/stop";
+            bool stopped = false;
             if (messageText.StartsWith(editHead))
             {
                 string commandString = messageText[editHead.Length..];
@@ -161,6 +170,10 @@ namespace NotesBot
             {
                 m_showCreatedTime = Convert.ToInt32(messageText[showCreatedTimeHead.Length..]) != 0;
             }
+            else if (messageText == stopHead)
+            {
+                stopped = true;
+            }
             else
             {
                 await AddNewNote(new()
@@ -176,6 +189,16 @@ namespace NotesBot
                 cancellationToken: cancellationToken);
             LogToFile(message.Chat.Username, messageText);
             WriteYaml(m_notesMap, NotesFilePath);
+
+            if (stopped)
+            {
+                StopBot();
+            }
+        }
+
+        private void StopBot()
+        {
+            m_waiter.Set();
         }
 
         async Task UpdateNote(int noteId, NoteText noteText, CancellationToken cancellationToken)
